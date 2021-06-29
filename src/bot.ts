@@ -2,9 +2,11 @@ import { config } from 'dotenv'
 config();
 
 import { Client, StreamDispatcher, VoiceConnection } from 'discord.js'
+import { EventEmitter } from 'stream';
 
 const client: Client = new Client();
 
+EventEmitter.defaultMaxListeners = 50;
 
 client.on('ready', () => {
     console.log('sheeeeee!');
@@ -42,7 +44,6 @@ function hablaDonnie(connection: VoiceConnection) {
         }
 
         dispatcher.on('finish', () => {
-            console.log('audio.mp3 has finished playing!');
             hablaDonnie(connection);
         });
     });
