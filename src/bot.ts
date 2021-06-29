@@ -1,11 +1,10 @@
 import { config } from 'dotenv'
 config();
 
-import { Client } from 'discord.js'
+import { Client, StreamDispatcher, VoiceConnection } from 'discord.js'
 
 const client: Client = new Client();
-const path = require('path');
-const ytdl = require('ytdl-core');
+
 
 client.on('ready', () => {
     console.log('sheeeeee!');
@@ -22,18 +21,31 @@ client.on('voiceStateUpdate', (oldState, newState) => {
         const canal = newState.member?.voice.channel;
         console.log('user se unio al canal', newState.channelID);
         canal?.join().then(connection => {
-
-            client.on('guildMemberSpeaking', (member, speaking) => {
-                const dispatcher = connection.play(ytdl('https://www.youtube.com/watch?v=4GicJVYQvcg', { quality: 'highestaudio' }));
-                if (speaking.bitfield == 1) {
-                    dispatcher.resume();
-                }
-                if (speaking.bitfield == 0) {
-                    dispatcher.pause();
-                }
-            });
+            hablaDonnie(connection);
         });
     }
 });
+
+/**
+ * Esta función recursiva hace que hable Donnie cuando detecta algún
+ * sonido en discord
+ * @param connection 
+ */
+function hablaDonnie(connection: VoiceConnection) {
+    const dispatcher = connection.play('./sound.wav');
+    client.on('guildMemberSpeaking', (member, speaking) => {
+        if (speaking.bitfield == 1) {
+            dispatcher.resume();
+        }
+        else if (speaking.bitfield == 0) {
+            dispatcher.pause();
+        }
+
+        dispatcher.on('finish', () => {
+            console.log('audio.mp3 has finished playing!');
+            hablaDonnie(connection);
+        });
+    });
+}
 
 client.login(process.env.DISCORD_TOKEN);
