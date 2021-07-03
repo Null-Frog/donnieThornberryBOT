@@ -1,30 +1,42 @@
-import { config } from 'dotenv'
-config();
+require('dotenv').config();
 
-import { Client, StreamDispatcher, VoiceConnection } from 'discord.js'
+import { Client, VoiceConnection } from 'discord.js'
 import { EventEmitter } from 'stream';
 
 const client: Client = new Client();
 
-EventEmitter.defaultMaxListeners = 50;
+EventEmitter.defaultMaxListeners = 200;
 
 client.on('ready', () => {
     console.log('sheeeeee!');
 })
 
+var estaDespierto = false;
+
+client.on('message', message => {
+    if (message.content === '!awake') {
+        estaDespierto = true;
+        message.delete();
+    } else if (message.content === '!sleep') {
+        estaDespierto = false;
+        message.delete();
+    }
+});
+
+
 client.on('voiceStateUpdate', (oldState, newState) => {
 
     if (newState.channelID === null) {
         const canal = oldState.member?.voice.channel;
-        console.log('user salio del canal', oldState.channelID);
         canal?.leave();
     }
     else if (oldState.channelID === null) {
         const canal = newState.member?.voice.channel;
-        console.log('user se unio al canal', newState.channelID);
-        canal?.join().then(connection => {
-            hablaDonnie(connection);
-        });
+        if (estaDespierto) {
+            canal?.join().then(connection => {
+                hablaDonnie(connection);
+            });
+        }
     }
 });
 
@@ -36,16 +48,19 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 function hablaDonnie(connection: VoiceConnection) {
     const dispatcher = connection.play('./sound.wav');
     client.on('guildMemberSpeaking', (member, speaking) => {
-        if (speaking.bitfield == 1) {
-            dispatcher.resume();
+        if (estaDespierto) {
+            if (speaking.bitfield == 1) {
+                dispatcher.resume();
+            }
+            else if (speaking.bitfield == 0) {
+                dispatcher.pause();
+            }
+            dispatcher.on('finish', () => {
+                hablaDonnie(connection);
+            });
+        } else {
+            connection.disconnect();
         }
-        else if (speaking.bitfield == 0) {
-            dispatcher.pause();
-        }
-
-        dispatcher.on('finish', () => {
-            hablaDonnie(connection);
-        });
     });
 }
 
